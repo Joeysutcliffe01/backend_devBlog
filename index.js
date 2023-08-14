@@ -18,7 +18,10 @@ const uploadMiddleware = multer({ dest: "uploads/" });
 
 // Need to come back to origin: "http://localhost:3000"
 app.use(
-  cors({ credentials: true, origin: "https://devblog-l3od.onrender.com" })
+  cors({
+    credentials: true,
+    origin: "http://localhost:3000",
+  })
 );
 app.use(express.json());
 app.use(cookieParser());
