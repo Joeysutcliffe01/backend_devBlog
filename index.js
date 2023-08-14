@@ -16,11 +16,11 @@ const salt = bcrypt.genSaltSync(10);
 const secret = process.env.SERCRETCODE;
 const uploadMiddleware = multer({ dest: "uploads/" });
 
-// Need to come back to origin: "http://localhost:3000"
+// Need to come back to origin: "http://localhost:3000 - https://devblog-l3od.onrender.com"
 app.use(
   cors({
     credentials: true,
-    origin: "http://localhost:3000",
+    origin: "https://devblog-l3od.onrender.com",
   })
 );
 app.use(express.json());
