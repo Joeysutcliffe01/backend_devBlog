@@ -27,7 +27,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
-mongoose.connect(process.env.CONNECT);
+mongoose.connect(
+  "mongodb+srv://joeysutcliffe0:billyobyran@cluster0.sbbu7un.mongodb.net/?retryWrites=true&w=majority"
+);
+
+// mongoose.connect(process.env.CONNECT);
 
 // ------------------------------------------------------------- register user
 app.post("/register", async (req, res) => {
@@ -142,13 +146,13 @@ app.put("/post", uploadMiddleware.single("file"), async (req, res) => {
     const { id, title, summary, content } = req.body;
     const postDoc = await Post.findById(id);
 
-    console.log("postDoc1", postDoc);
+    // console.log("postDoc1", postDoc);
     const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(info.id);
     if (!isAuthor) {
       return res.status(400).json("you are not the author");
     }
 
-    console.log("isAuthor------", isAuthor);
+    // console.log("isAuthor------", isAuthor);
     await postDoc.updateOne({
       title,
       summary,
