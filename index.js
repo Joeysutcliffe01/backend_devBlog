@@ -13,34 +13,48 @@ require("dotenv").config();
 
 const app = express();
 const salt = bcrypt.genSaltSync(10);
-const secret = process.env.SERCRETCODE;
 const uploadMiddleware = multer({ dest: "uploads/" });
 
-// Need to come back to origin: "http://localhost:3000 - https://devblog-l3od.onrender.com"
+const secret = process.env.SERCRETCODE;
+const DB_URL = process.env.CONNECT
+const DEV = process.env.DEV
+const PROD = process.env.PROD
+const PORT = process.env.PORT
+
 app.use(
   cors({
     credentials: true,
-    origin: "https://devblog-l3od.onrender.com",
+    origin: DEV || PROD,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
-mongoose.connect(
-  "mongodb+srv://joeysutcliffe0:billyobyran@cluster0.sbbu7un.mongodb.net/?retryWrites=true&w=majority"
-);
+mongoose.connect(DB_URL);
+
+const dbConnection = mongoose.connection
+
+dbConnection.once("open", () => {
+  console.log("Connected to MongoDB")
+})
+dbConnection.on("error", () => {
+  console.log("Failed to connect to MongoDB")
+})
 
 // mongoose.connect(process.env.CONNECT);
 
 // ------------------------------------------------------------- register user
 app.post("/register", async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, avatar } = req.body;
+
   try {
     const userDoc = await User.create({
       username,
       password: bcrypt.hashSync(password, salt),
+      avatar,
     });
+
     res.json(userDoc);
   } catch (err) {
     console.log(err);
@@ -52,13 +66,20 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const userDoc = await User.findOne({ username });
+  let usersAvatar = userDoc ? userDoc.avatar : null;
 
   // Issue with the user returning null when wrong username is enterd
   if (userDoc === null) {
     return res.status(400).json("Cant find username in doc");
   }
 
+  if (usersAvatar) {
+    // console.log("User has avatar")
+    usersAvatar = userDoc.avatar
+  }
+
   const passOk = bcrypt.compareSync(password, userDoc.password);
+
   if (passOk) {
     jwt.sign({ username, id: userDoc._id }, secret, {}, (err, token) => {
       if (err) throw err;
@@ -66,6 +87,7 @@ app.post("/login", async (req, res) => {
       res.cookie("token", token).json({
         id: userDoc._id,
         username,
+        usersAvatar
       });
     });
   } else {
@@ -145,22 +167,18 @@ app.put("/post", uploadMiddleware.single("file"), async (req, res) => {
     if (err) throw err;
     const { id, title, summary, content } = req.body;
     const postDoc = await Post.findById(id);
-
-    // console.log("postDoc1", postDoc);
     const isAuthor = JSON.stringify(postDoc.author) === JSON.stringify(info.id);
+
     if (!isAuthor) {
       return res.status(400).json("you are not the author");
     }
 
-    // console.log("isAuthor------", isAuthor);
     await postDoc.updateOne({
       title,
       summary,
       content,
       cover: newPath ? newPath : postDoc.cover,
     });
-
-    console.log("postDoc2", postDoc);
 
     res.json(postDoc);
   });
@@ -180,4 +198,6 @@ app.post("/logout", (req, res) => {
   res.cookie("token", "").json("ok");
 });
 
-app.listen(4000);
+const listener = app.listen(PORT, () => {
+  console.log('Listening on port ' + listener.address().port);
+});
